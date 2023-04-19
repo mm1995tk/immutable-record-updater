@@ -90,8 +90,9 @@ const person2: Person = {
 ```
 
 but you can do same thing more simply by using this library.
+
 ```ts
-import imRecUp from '../src';
+import imRecUp from '@mm1995tk/immutable-record-updater';
 
 const composerOfProgram = imRecUp.generateComposerOfUpdater<Person>();
 
@@ -102,6 +103,17 @@ const program = composerOfProgram(updater => {
 
   return [updateFromFamousPeople, updateLivingFamousPlacePark];
 });
+
+const person2: Person = program.run(person);
+```
+
+if you update only one prop,
+
+```ts
+import imRecUp from '@mm1995tk/immutable-record-updater';
+
+const updater = imRecUp.generateRecordUpdater<Person>();
+const program = updater('age', 20); // or updater('age', age => { .. })
 
 const person2: Person = program.run(person);
 ```
