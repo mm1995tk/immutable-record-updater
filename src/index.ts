@@ -32,6 +32,9 @@ export const generateRecordUpdater =
   ): RecordUpdater<T> => ({
     run: origin => {
       const go = (item: any, keys: string[]): any => {
+        if (item == null) {
+          return item;
+        }
         if (!keys.length) {
           if (typeof valueOrFunc === 'function') {
             return (valueOrFunc as (item: FieldPathValue<T, Path>, origin: T) => FieldPathValue<T, Path>)(item, origin);
