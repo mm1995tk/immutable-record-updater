@@ -1,7 +1,7 @@
 import type { FieldPath, FieldPathValue } from 'react-hook-form';
 import { Id, NonEmptyArray, composeId, isNonEmptyArray } from './lib';
 
-export { Id } from './lib';
+export { type Id } from './lib';
 
 /**
  * a function that updates records of the type passed as the type argument.

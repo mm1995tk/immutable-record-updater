@@ -9,6 +9,13 @@
     "test": "jest",
     "format": "prettier --write ."
   },
+  "files": ["dist"], 
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.12"
+  },
   "keywords": [
     "immutable",
     "functional",
