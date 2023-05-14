@@ -1,4 +1,4 @@
-import { generateComposerOfUpdater, generateRecordUpdater } from '../src';
+import { generateRecordUpdater } from '../src';
 
 const throwErrorIfAgeIsLessThanTen = (person: Person): Person => {
   if (person.age < 10) {
@@ -12,12 +12,12 @@ describe('test of generateRecordUpdater', () => {
 
   test('if age < 10 then throw error', () => {
     expect(() => {
-      updater('age', 8).run(person);
+      updater.set('age', 8).run(person);
     }).toThrowError('must be age >= 10');
   });
 
   test('if age is even then age+=1 else age+=2', () => {
-    const program = updater('age', age => {
+    const program = updater.set('age', age => {
       if (age % 2) {
         return age + 2;
       }
@@ -27,42 +27,33 @@ describe('test of generateRecordUpdater', () => {
   });
 
   test('add person to from.famous.people', () => {
-    const program = updater('from.famous.people', (people, me) => {
+    const program = updater.set('from.famous.people', (people, me) => {
       return [...people, me.name];
     });
     expect(program.run(person).from.famous.people).toEqual(['Jay-Z', 'Lady Gaga', 'John Smith']);
   });
-});
-
-describe('test of generateComposerOfUpdater', () => {
-  const composerOfUpdater = generateComposerOfUpdater<Person>(throwErrorIfAgeIsLessThanTen);
 
   test('if age < 10 then throw error', () => {
     expect(() => {
-      const program = composerOfUpdater(updater => {
-        const updateAge = updater('age', 8);
-        const addPersonToFamousPeople = updater('from.famous.people', (people, me) => {
-          return [...people, me.name];
-        });
-        return [updateAge, addPersonToFamousPeople];
+      const program = updater.set('age', 8).set('from.famous.people', (people, me) => {
+        return [...people, me.name];
       });
       program.run(person);
     }).toThrowError('must be age >= 10');
   });
 
   test('if age is even then age+=1 else age+=2, and then add person to from.famous.people', () => {
-    const program = composerOfUpdater(updater => {
-      const updateAge = updater('age', age => {
+    const program = updater
+      .set('age', age => {
         if (age % 2) {
           return age + 2;
         }
         return age + 1;
-      });
-      const addPersonToFamousPeople = updater('from.famous.people', (people, me) => {
+      })
+      .set('from.famous.people', (people, me) => {
         return [...people, me.name];
       });
-      return [updateAge, addPersonToFamousPeople];
-    });
+
     const result = program.run(person);
     expect(result.age).toBe(31);
     expect(result.from.famous.people).toEqual(['Jay-Z', 'Lady Gaga', 'John Smith']);
