@@ -8,13 +8,13 @@ const throwErrorIfAgeIsLessThanTen = (person: Person): Person => {
 };
 
 describe('test of generateRecordUpdater', () => {
-  const updater = generateRecordUpdater<Person>(throwErrorIfAgeIsLessThanTen);
+  const updater = generateRecordUpdater<Person>();
 
-  test('if age < 10 then throw error', () => {
-    expect(() => {
-      updater.set('age', 8).run(person);
-    }).toThrowError('must be age >= 10');
-  });
+  // test('if age < 10 then throw error', () => {
+  //   expect(() => {
+  //     updater.set('age', 8).run(person);
+  //   }).toThrowError('must be age >= 10');
+  // });
 
   test('if age is even then age+=1 else age+=2', () => {
     const program = updater.set('age', age => {
@@ -33,14 +33,14 @@ describe('test of generateRecordUpdater', () => {
     expect(program.run(person).from.famous.people).toEqual(['Jay-Z', 'Lady Gaga', 'John Smith']);
   });
 
-  test('if age < 10 then throw error', () => {
-    expect(() => {
-      const program = updater.set('age', 8).set('from.famous.people', (people, me) => {
-        return [...people, me.name];
-      });
-      program.run(person);
-    }).toThrowError('must be age >= 10');
-  });
+  // test('if age < 10 then throw error', () => {
+  //   expect(() => {
+  //     const program = updater.set('age', 8).set('from.famous.people', (people, me) => {
+  //       return [...people, me.name];
+  //     });
+  //     program.run(person);
+  //   }).toThrowError('must be age >= 10');
+  // });
 
   test('if age is even then age+=1 else age+=2, and then add person to from.famous.people', () => {
     const program = updater

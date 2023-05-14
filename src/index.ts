@@ -42,34 +42,34 @@ export type RecordUpdater<T extends FieldValues> = {
  * generate updater.
  * @param constraints - constraints record should fulfill. you also can use this as preprocessor.
  */
-export const generateRecordUpdater = <T extends FieldValues>(...constraints: Id<T>[]) => {
-  const updater = (queue: Id<T>[]): RecordUpdater<T> => {
-    const createSetter =
-      (b: boolean) =>
-      <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrFunc<T, Path>) => {
-        return updater([
-          ...queue,
-          origin => {
-            const go = getGo(origin, valueOrFunc, b);
+export const generateRecordUpdater = <T extends FieldValues>() =>
+  // ...constraints: Id<T>[]
+  {
+    const updater = (queue: Id<T>[]): RecordUpdater<T> => {
+      const createSetter =
+        (b: boolean) =>
+        <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrFunc<T, Path>) => {
+          return updater([
+            ...queue,
+            origin => {
+              const go = getGo(origin, valueOrFunc, b);
 
-            return go(origin, path.split('.'));
-          },
-        ]);
+              return go(origin, path.split('.'));
+            },
+          ]);
+        };
+
+      return {
+        run: origin => {
+          return isNonEmptyArray(queue) ? composeId(...queue)(origin) : origin;
+        },
+        set: createSetter(false),
+        setIfNotNullish: createSetter(true),
       };
-
-    return {
-      run: origin => {
-        const result = isNonEmptyArray(queue) ? composeId(...queue)(origin) : origin;
-
-        return isNonEmptyArray(constraints) ? composeId(...constraints)(result) : result;
-      },
-      set: createSetter(false),
-      setIfNotNullish: createSetter(true),
     };
-  };
 
-  return updater([]);
-};
+    return updater([]);
+  };
 
 const getGo = <T extends FieldValues, Path extends FieldPath<T>>(
   origin: T,
