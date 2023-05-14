@@ -193,7 +193,16 @@ const getGo = <T extends FieldValues, Path extends FieldPath<T>>(
     const next = go(item[key], keys.slice(1));
     const result = { ...item, [key]: next };
 
-    return Array.isArray(item) ? Object.values(result) : result;
+    if (Array.isArray(item)) {
+      const len = item.length;
+      const index = Number(key);
+      if (index > len - 1) {
+        return Object.values(item);
+      }
+      return result;
+    }
+
+    return result;
   };
 
   return go;
@@ -232,7 +241,16 @@ const getSafeGo = <T extends FieldValues, Path extends FieldPath<T>, Error>(
     const next = go(item[key], keys.slice(1));
     const result = { ...item, [key]: next };
 
-    return Array.isArray(item) ? Object.values(result) : result;
+    if (Array.isArray(item)) {
+      const len = item.length;
+      const index = Number(key);
+      if (index > len - 1) {
+        return Object.values(item);
+      }
+      return result;
+    }
+
+    return result;
   };
 
   return go;
