@@ -24,6 +24,18 @@ export type RecordUpdater<T extends FieldValues> = {
      */
     valueOrFunc: ValueOrFunc<T, Path>
   ): RecordUpdater<T>;
+
+  setIfNotNullish<Path extends FieldPath<T>>(
+    /**
+     * path of value you would like to update.
+     */
+    path: Path,
+
+    /**
+     * value that replace old value or procedure of update.
+     */
+    valueOrFunc: Value<T, Path> | ((item: NonNullable<FieldPathValue<T, Path>>, origin: T) => FieldPathValue<T, Path>)
+  ): RecordUpdater<T>;
 };
 
 /**
@@ -32,44 +44,68 @@ export type RecordUpdater<T extends FieldValues> = {
  */
 export const generateRecordUpdater = <T extends FieldValues>(...constraints: Id<T>[]) => {
   const updater = (queue: Id<T>[]): RecordUpdater<T> => {
+    const createSetter =
+      (b: boolean) =>
+      <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrFunc<T, Path>) => {
+        return updater([
+          ...queue,
+          origin => {
+            const go = getGo(origin, valueOrFunc, b);
+
+            return go(origin, path.split('.'));
+          },
+        ]);
+      };
+
     return {
       run: origin => {
         const result = isNonEmptyArray(queue) ? composeId(...queue)(origin) : origin;
 
         return isNonEmptyArray(constraints) ? composeId(...constraints)(result) : result;
       },
-      set: <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrFunc<T, Path>) => {
-        return updater([
-          ...queue,
-          origin => {
-            const go = (item: any, keys: string[]): any => {
-              if (item == null && !!keys.length) {
-                return null;
-              }
-
-              if (!keys.length) {
-                if (typeof valueOrFunc === 'function') {
-                  return (valueOrFunc as Func<T, Path>)(item, origin);
-                }
-                return valueOrFunc;
-              }
-
-              const key = keys[0];
-              const next = go(item[key], keys.slice(1));
-              const result = { ...item, [key]: next };
-
-              return Array.isArray(item) ? Object.values(result) : result;
-            };
-
-            return go(origin, path.split('.'));
-          },
-        ]);
-      },
+      set: createSetter(false),
+      setIfNotNullish: createSetter(true),
     };
   };
 
   return updater([]);
 };
+
+const getGo = <T extends FieldValues, Path extends FieldPath<T>>(
+  origin: T,
+  valueOrFunc: ValueOrFunc<T, Path>,
+  nullishFlag: boolean
+) => {
+  const go = (item: any, keys: string[]): any => {
+    if (item == null && !!keys.length) {
+      return null;
+    }
+
+    if (!keys.length) {
+      if (!isFunc(valueOrFunc)) {
+        return valueOrFunc;
+      }
+
+      if (nullishFlag && item == null) {
+        return item;
+      }
+
+      return valueOrFunc(item, origin);
+    }
+
+    const key = keys[0];
+    const next = go(item[key], keys.slice(1));
+    const result = { ...item, [key]: next };
+
+    return Array.isArray(item) ? Object.values(result) : result;
+  };
+
+  return go;
+};
+
+const isFunc = <T extends FieldValues, Path extends FieldPath<T>>(
+  valueOrFunc: ValueOrFunc<T, Path>
+): valueOrFunc is Func<T, Path> => typeof valueOrFunc === 'function';
 
 export const joinByDot =
   <T extends string>(item: T) =>
