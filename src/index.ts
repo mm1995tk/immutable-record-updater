@@ -106,21 +106,25 @@ export const generateRecordUpdater = <T extends FieldValues>() => {
 export const generateSafeRecordUpdater = <T extends FieldValues, Error extends DefaultError | string = DefaultError>(
   ...constraints: Constraint<T, Error>[]
 ) => {
-  const validate: Constraint<T, Error> = pre => {
+  const validate: Validate<T, Error> = pre => {
     if (!isNonEmptyArray(constraints)) {
       return { success: true };
     }
 
-    let acc = constraints[0](pre);
+    const errors: Error[] = [];
 
-    for (const cur of constraints.slice(1)) {
-      if (!acc.success) {
-        break;
+    for (const constraint of constraints) {
+      const err = constraint(pre);
+      if (err && typeof err !== 'boolean') {
+        errors.push(err);
       }
-      acc = cur(pre);
     }
 
-    return acc;
+    if (!isNonEmptyArray(errors)) {
+      return { success: true };
+    }
+
+    return { success: false, errors };
   };
 
   const updater = (queue: Id<T>[]): SafeRecordUpdater<T, Error> => {
@@ -199,7 +203,7 @@ const getSafeGo = <T extends FieldValues, Path extends FieldPath<T>, Error>(
   origin: T,
   valueOrFunc: ValueOrSafeFunc<T, Path, Error>,
   nullishFlag: boolean,
-  validate: Constraint<T, Error>
+  validate: Validate<T, Error>
 ) => {
   const go = (item: any, keys: string[]): any => {
     if (item == null && !!keys.length) {
@@ -220,7 +224,7 @@ const getSafeGo = <T extends FieldValues, Path extends FieldPath<T>, Error>(
         if (!validated.success) {
           return validated;
         }
-        return { success: true, data: result };
+        return { success: true, data: origin };
       });
     }
 
@@ -262,17 +266,19 @@ type SafeFunc<T extends FieldValues, Path extends FieldPath<T>, Error> = (
   origin: () => Result<T, Error>
 ) => FieldPathValue<T, Path>;
 
-type Constraint<T extends FieldValues, Error> = (item: T) =>
+type Constraint<T extends FieldValues, Error> = (item: T) => Error | undefined | true;
+
+type Validate<T extends FieldValues, Error> = (item: T) =>
   | {
       success: true;
     }
-  | { success: false; error: Error };
+  | { success: false; errors: NonEmptyArray<Error> };
 
 type Result<T extends FieldValues, Error> =
   | {
       success: true;
       data: T;
     }
-  | { success: false; error: Error };
+  | { success: false; errors: NonEmptyArray<Error> };
 
 type DefaultError = Error;
