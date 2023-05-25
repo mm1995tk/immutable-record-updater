@@ -3,6 +3,9 @@ import { Id, NonEmptyArray, composeId, isNonEmptyArray } from './lib';
 
 export { type Id } from './lib';
 
+//TODO safe~を普通にして普通をunsafeにする
+//TODO .xxx() で、setのキーと、関数のタプルの累積を吐き出す関数を実装する。
+
 /**
  * the interface to update a record.
  */
@@ -38,7 +41,7 @@ export type RecordUpdater<T extends FieldValues> = {
   ): RecordUpdater<T>;
 };
 
-export type SafeRecordUpdater<T extends FieldValues, Error> = {
+export type SafeRecordUpdater<T extends FieldValues, Error, RemoveKey extends FieldPath<T>> = {
   /**
    * it runs the program of update you define by recieve initial value.
    */
@@ -49,19 +52,19 @@ export type SafeRecordUpdater<T extends FieldValues, Error> = {
     /**
      * path of value you would like to update.
      */
-    path: Path,
+    path: Exclude<Path, RemoveKey | `${RemoveKey}.${string | number}`>,
 
     /**
      * value that replace old value or procedure of update.
      */
     valueOrFunc: ValueOrSafeFunc<T, Path, Error>
-  ): SafeRecordUpdater<T, Error>;
+  ): SafeRecordUpdater<T, Error, RemoveKey>;
 
   setIfNotNullish<Path extends FieldPath<T>>(
     /**
      * path of value you would like to update.
      */
-    path: Path,
+    path: Exclude<Path, RemoveKey | `${RemoveKey}.${string | number}`>,
 
     /**
      * value that replace old value or procedure of update.
@@ -69,7 +72,7 @@ export type SafeRecordUpdater<T extends FieldValues, Error> = {
     valueOrFunc:
       | Value<T, Path>
       | ((item: NonNullable<FieldPathValue<T, Path>>, origin: () => Result<T, Error>) => FieldPathValue<T, Path>)
-  ): SafeRecordUpdater<T, Error>;
+  ): SafeRecordUpdater<T, Error, RemoveKey>;
 };
 
 /**
@@ -103,7 +106,11 @@ export const generateRecordUpdater = <T extends FieldValues>() => {
   return updater([]);
 };
 
-export const generateSafeRecordUpdater = <T extends FieldValues, Error extends DefaultError | string = DefaultError>(
+export const generateSafeRecordUpdater = <
+  T extends FieldValues,
+  Error extends DefaultError | string = DefaultError,
+  RemoveKey extends FieldPath<T> = never
+>(
   ...constraints: Constraint<T, Error>[]
 ) => {
   const validate: Validate<T, Error> = pre => {
@@ -127,10 +134,13 @@ export const generateSafeRecordUpdater = <T extends FieldValues, Error extends D
     return { success: false, errors };
   };
 
-  const updater = (queue: Id<T>[]): SafeRecordUpdater<T, Error> => {
+  const updater = (queue: Id<T>[]): SafeRecordUpdater<T, Error, RemoveKey> => {
     const createSetter =
       (b: boolean) =>
-      <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrSafeFunc<T, Path, Error>) => {
+      <Path extends FieldPath<T>>(
+        path: never extends RemoveKey ? Path : Exclude<Path, RemoveKey>,
+        valueOrFunc: ValueOrSafeFunc<T, Path, Error>
+      ) => {
         return updater([
           ...queue,
           origin => {
@@ -196,10 +206,7 @@ const getGo = <T extends FieldValues, Path extends FieldPath<T>>(
     if (Array.isArray(item)) {
       const len = item.length;
       const index = Number(key);
-      if (index > len - 1) {
-        return Object.values(item);
-      }
-      return result;
+      return Object.values(index > len - 1 ? item : result);
     }
 
     return result;
@@ -244,10 +251,7 @@ const getSafeGo = <T extends FieldValues, Path extends FieldPath<T>, Error>(
     if (Array.isArray(item)) {
       const len = item.length;
       const index = Number(key);
-      if (index > len - 1) {
-        return Object.values(item);
-      }
-      return result;
+      return Object.values(index > len - 1 ? item : result);
     }
 
     return result;
