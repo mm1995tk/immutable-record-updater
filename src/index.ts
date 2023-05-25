@@ -25,6 +25,10 @@ export type UnsafeRecordUpdater<T extends FieldValues> = {
     valueOrFunc: ValueOrFunc<T, Path>
   ): UnsafeRecordUpdater<T>;
 
+  /** 
+   * the test of this method is not yet implemented.
+   * @alpha
+   */
   setIfNotNullish<Path extends FieldPath<T>>(
     /**
      * path of value you would like to update.
@@ -57,6 +61,10 @@ export type RecordUpdater<T extends FieldValues, Error, RemoveKey extends FieldP
     valueOrFunc: ValueOrSafeFunc<T, Path, Error>
   ): RecordUpdater<T, Error, RemoveKey>;
 
+  /** 
+   * the test of this method is not yet implemented.
+   * @alpha
+   */
   setIfNotNullish<Path extends FieldPath<T>>(
     /**
      * path of value you would like to update.
