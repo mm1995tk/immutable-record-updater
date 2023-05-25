@@ -1,6 +1,6 @@
 {
   "name": "@mm1995tk/immutable-record-updater",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "repository": "mm1995tk/immutable-record-updater",
   "description": "A library, which helps you update record without breaking changes.",
   "type": "module",
