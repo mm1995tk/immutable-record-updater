@@ -3,13 +3,10 @@ import { Id, NonEmptyArray, composeId, isNonEmptyArray } from './lib';
 
 export { type Id } from './lib';
 
-//TODO safe~を普通にして普通をunsafeにする
-//TODO .xxx() で、setのキーと、関数のタプルの累積を吐き出す関数を実装する。
-
 /**
  * the interface to update a record.
  */
-export type RecordUpdater<T extends FieldValues> = {
+export type UnsafeRecordUpdater<T extends FieldValues> = {
   /**
    * it runs the program of update you define by recieve initial value.
    */
@@ -26,7 +23,7 @@ export type RecordUpdater<T extends FieldValues> = {
      * value that replace old value or procedure of update.
      */
     valueOrFunc: ValueOrFunc<T, Path>
-  ): RecordUpdater<T>;
+  ): UnsafeRecordUpdater<T>;
 
   setIfNotNullish<Path extends FieldPath<T>>(
     /**
@@ -38,10 +35,10 @@ export type RecordUpdater<T extends FieldValues> = {
      * value that replace old value or procedure of update.
      */
     valueOrFunc: Value<T, Path> | ((item: NonNullable<FieldPathValue<T, Path>>, origin: T) => FieldPathValue<T, Path>)
-  ): RecordUpdater<T>;
+  ): UnsafeRecordUpdater<T>;
 };
 
-export type SafeRecordUpdater<T extends FieldValues, Error, RemoveKey extends FieldPath<T>> = {
+export type RecordUpdater<T extends FieldValues, Error, RemoveKey extends FieldPath<T>> = {
   /**
    * it runs the program of update you define by recieve initial value.
    */
@@ -58,7 +55,7 @@ export type SafeRecordUpdater<T extends FieldValues, Error, RemoveKey extends Fi
      * value that replace old value or procedure of update.
      */
     valueOrFunc: ValueOrSafeFunc<T, Path, Error>
-  ): SafeRecordUpdater<T, Error, RemoveKey>;
+  ): RecordUpdater<T, Error, RemoveKey>;
 
   setIfNotNullish<Path extends FieldPath<T>>(
     /**
@@ -72,15 +69,15 @@ export type SafeRecordUpdater<T extends FieldValues, Error, RemoveKey extends Fi
     valueOrFunc:
       | Value<T, Path>
       | ((item: NonNullable<FieldPathValue<T, Path>>, origin: () => Result<T, Error>) => FieldPathValue<T, Path>)
-  ): SafeRecordUpdater<T, Error, RemoveKey>;
+  ): RecordUpdater<T, Error, RemoveKey>;
 };
 
 /**
  * generate updater.
  * @param constraints - constraints record should fulfill. you also can use this as preprocessor.
  */
-export const generateRecordUpdater = <T extends FieldValues>() => {
-  const updater = (queue: Id<T>[]): RecordUpdater<T> => {
+export const generateUnsafeRecordUpdater = <T extends FieldValues>() => {
+  const updater = (queue: Id<T>[]): UnsafeRecordUpdater<T> => {
     const createSetter =
       (b: boolean) =>
       <Path extends FieldPath<T>>(path: Path, valueOrFunc: ValueOrFunc<T, Path>) => {
@@ -106,7 +103,7 @@ export const generateRecordUpdater = <T extends FieldValues>() => {
   return updater([]);
 };
 
-export const generateSafeRecordUpdater = <
+export const generateRecordUpdater = <
   T extends FieldValues,
   Error extends DefaultError | string = DefaultError,
   RemoveKey extends FieldPath<T> = never
@@ -131,10 +128,10 @@ export const generateSafeRecordUpdater = <
       return { success: true };
     }
 
-    return { success: false, errors };
+    return { success: false, errors, data: pre };
   };
 
-  const updater = (queue: Id<T>[]): SafeRecordUpdater<T, Error, RemoveKey> => {
+  const updater = (queue: Id<T>[]): RecordUpdater<T, Error, RemoveKey> => {
     const createSetter =
       (b: boolean) =>
       <Path extends FieldPath<T>>(
@@ -173,7 +170,7 @@ export const joinByDot =
   <U extends string | number>(n: U): `${T}.${U}` =>
     `${item}.${n}`;
 
-export default { generateRecordUpdater, joinByDot, generateSafeRecordUpdater };
+export default { generateUnsafeRecordUpdater, joinByDot, generateRecordUpdater };
 
 // ########################################################################################################################
 
@@ -294,13 +291,13 @@ type Validate<T extends FieldValues, Error> = (item: T) =>
   | {
       success: true;
     }
-  | { success: false; errors: NonEmptyArray<Error> };
+  | { success: false; errors: NonEmptyArray<Error>; data: T };
 
 type Result<T extends FieldValues, Error> =
   | {
       success: true;
       data: T;
     }
-  | { success: false; errors: NonEmptyArray<Error> };
+  | { success: false; errors: NonEmptyArray<Error>; data: T };
 
 type DefaultError = Error;
