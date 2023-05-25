@@ -17,6 +17,7 @@ suppose you define a type "Person".
 ```ts
 type Person = {
   name: string;
+  age: number;
   from: {
     name: string;
     category: string;
@@ -41,6 +42,7 @@ type Person = {
 
 const person: Person = {
   name: 'John Smith',
+  age: 28,
   from: {
     name: 'New York',
     category: 'City',
@@ -94,26 +96,51 @@ but you can do same thing more simply by using this library.
 ```ts
 import imRecUp from '@mm1995tk/immutable-record-updater';
 
-const composerOfProgram = imRecUp.generateComposerOfUpdater<Person>();
+const updater = imRecUp.generateRecordUpdater<Person>();
 
-const program = composerOfProgram(updater => {
-  const updateFromFamousPeople = updater('from.famous.people', item => [...item, 'Beyoncé']);
+const program = updater
+  .set('from.famous.people', item => [...item, 'Beyoncé'])
+  .set('living.famous.place.park', item => [...item, 'Echo Park']);
 
-  const updateLivingFamousPlacePark = updater('living.famous.place.park', item => [...item, 'Echo Park']);
-
-  return [updateFromFamousPeople, updateLivingFamousPlacePark];
-});
-
-const person2: Person = program.run(person);
+const person2 = program.run(person); // { success: true, data: {..}}
 ```
 
-if you update only one prop,
+If you wish to add restrictions (e.g., age must not be less than 30),　 you can do it like this.
 
 ```ts
 import imRecUp from '@mm1995tk/immutable-record-updater';
 
-const updater = imRecUp.generateRecordUpdater<Person>();
-const program = updater('age', 20); // or updater('age', age => { .. })
+type ErrKind = 'AgeIsLessThanTen';
 
-const person2: Person = program.run(person);
+const updater = imRecUp.generateRecordUpdater<Person, ErrKind>(person => person.age >= 30 || 'AgeIsLessThanTen');
+
+const program = updater
+  .set('from.famous.people', item => [...item, 'Beyoncé'])
+  .set('living.famous.place.park', item => [...item, 'Echo Park']);
+
+const person2 = program.run(person); // { success: false, error: ['AgeIsLessThanTen'] data: {..}}
+```
+
+Also, if you want to decide how to update from the current state, do it like this.
+
+```ts
+import imRecUp from '@mm1995tk/immutable-record-updater';
+
+type ErrKind = 'AgeIsLessThanTen';
+
+const updater = imRecUp.generateRecordUpdater<Person, ErrKind>(person => person.age >= 30 || 'AgeIsLessThanTen');
+
+const program = updater
+  .set('age', (item, getPreState) => {
+    const preState = getPreState();
+    // checking if data satisfy constraints
+    if (preState.success) {
+      return item;
+    }
+    return item + 5;
+  })
+  .set('from.famous.people', item => [...item, 'Beyoncé'])
+  .set('living.famous.place.park', item => [...item, 'Echo Park']);
+
+const person2 = program.run(person); // { success: true, data: {..}}
 ```
