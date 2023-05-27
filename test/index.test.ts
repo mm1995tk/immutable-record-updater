@@ -1,4 +1,4 @@
-import { generateRecordUpdater, generateUnsafeRecordUpdater } from '../src';
+import { generateRecordUpdater } from '../src';
 
 describe('test of generateRecordUpdater', () => {
   const updater = generateRecordUpdater<Person, ErrKind>(person => person.age >= 10 || 'AgeIsLessThanTen');
@@ -68,45 +68,6 @@ describe('test of generateRecordUpdater', () => {
     } else {
       expect(true).toBeFalsy();
     }
-  });
-});
-
-describe('test of generateUnsafeRecordUpdater', () => {
-  const updater = generateUnsafeRecordUpdater<Person>();
-
-  test('if age is even then age+=1 else age+=2', () => {
-    const program = updater.set('age', age => {
-      if (age % 2) {
-        return age + 2;
-      }
-      return age + 1;
-    });
-    expect(program.run(person).age).toBe(31);
-  });
-
-  test('add person to from.famous.people', () => {
-    const program = updater.set('from.famous.people', (people, me) => {
-      return [...people, me.name];
-    });
-    expect(program.run(person).from.famous.people).toEqual(['Jay-Z', 'Lady Gaga', 'John Smith']);
-  });
-
-  test('if age is even then age+=1 else age+=2, and then add person to from.famous.people', () => {
-    const program = updater
-      .set('age', age => {
-        if (age % 2) {
-          return age + 2;
-        }
-        return age + 1;
-      })
-      .set('from.famous.people', (people, me) => {
-        console.log(me);
-        return [...people, me.name];
-      });
-
-    const result = program.run(person);
-    expect(result.age).toBe(31);
-    expect(result.from.famous.people).toEqual(['Jay-Z', 'Lady Gaga', 'John Smith']);
   });
 });
 
