@@ -1,4 +1,5 @@
 import { generateRecordUpdater } from '../src';
+import { describe, test, expect } from 'vitest';
 
 describe('test of generateRecordUpdater', () => {
   const updater = generateRecordUpdater<Person, ErrKind>(person => person.age >= 10 || 'AgeIsLessThanTen');

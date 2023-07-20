@@ -1,12 +1,10 @@
 import type { FieldPath, FieldPathValue } from 'react-hook-form';
-import { Id, NonEmptyArray, composeId, isNonEmptyArray } from './lib';
-
-export { type Id } from './lib';
+import { composeUnaryOperator, isNonEmptyArray, type NonEmptyArray, type UnaryOperator } from './lib';
 
 export type RecordUpdater<
   T extends FieldValues,
   Error extends DefaultError | string,
-  RemoveKey extends FieldPath<T>
+  RemoveKey extends FieldPath<T>,
 > = {
   /**
    * it runs the program of update you define by receiving the initial value.
@@ -14,8 +12,8 @@ export type RecordUpdater<
   run: (item: T) => Result<T, Error>;
 
   /**
-   * it runs the program of update you define by receiving the initial value.  
-   * however, this method throws an exception.  
+   * it runs the program of update you define by receiving the initial value.
+   * however, this method throws an exception.
    * the test of this method is not yet implemented.
    * @alpha
    * @param item - initial value
@@ -23,6 +21,25 @@ export type RecordUpdater<
    * @throws error you throw in {@link throwError}
    */
   runOrThrowError: (item: T, throwError: (errors: NonEmptyArray<Error>) => never) => T;
+
+  /**
+   * curried "runOrThrowError”
+   * @alpha
+   * @param item - initial value
+   * @param throwError - you must throw error in this function.
+   * @throws error you throw in {@link throwError}
+   */
+  runOrThrowErrorK: (throwError: (errors: NonEmptyArray<Error>) => never) => (item: T) => T;
+
+  /**
+   * it runs the program of update you define by receiving the initial value.
+   * however, this method throws an exception.
+   * the test of this method is not yet implemented.
+   * @alpha
+   * @param item - initial value
+   * @throws error {@link DefaultError}
+   */
+  runUnsafe: (item: T) => T;
 
   /** it's an immutable setter. */
   set<Path extends FieldPath<T>>(
@@ -56,14 +73,68 @@ export type RecordUpdater<
   ): RecordUpdater<T, Error, RemoveKey>;
 };
 
+export type { FieldPath, FieldPathValue };
+
 export const generateRecordUpdater = <
   T extends FieldValues,
   Error extends DefaultError | string = DefaultError,
-  RemoveKey extends FieldPath<T> = never
+  RemoveKey extends FieldPath<T> = never,
 >(
   ...constraints: Constraint<T, Error>[]
 ) => {
-  const validate: Validate<T, Error> = pre => {
+  return updater([]);
+
+  function updater(queue: UnaryOperator<T>[]): RecordUpdater<T, Error, RemoveKey> {
+    return {
+      run,
+      runOrThrowError,
+      runOrThrowErrorK: throwError => origin => runOrThrowError(origin, throwError),
+      runUnsafe: item => {
+        const r = run(item);
+        if (!r.success) {
+          throw new Error(JSON.stringify(r.errors));
+        }
+        return r.data;
+      },
+      set: createSetter(false),
+      setIfNotNullish: createSetter(true),
+    };
+
+    function run(origin: T): Result<T, Error> {
+      const result = isNonEmptyArray(queue) ? composeUnaryOperator(...queue)(origin) : origin;
+      const validated = validate(result);
+      if (!validated.success) {
+        return validated;
+      }
+      return { success: true, data: result };
+    }
+
+    function runOrThrowError(origin: T, throwError: (errors: NonEmptyArray<Error>) => never): T {
+      const r = run(origin);
+      if (!r.success) {
+        return throwError(r.errors);
+      }
+      return r.data;
+    }
+
+    function createSetter(b: boolean) {
+      return <Path extends FieldPath<T>>(
+        path: never extends RemoveKey ? Path : Exclude<Path, RemoveKey>,
+        valueOrFunc: ValueOrFunc<T, Path, Error>
+      ) => {
+        return updater([
+          ...queue,
+          origin => {
+            const go = getGo(origin, valueOrFunc, b, validate);
+
+            return go(origin, path.split('.'));
+          },
+        ]);
+      };
+    }
+  }
+
+  function validate(pre: T): Result<T, Error> {
     if (!isNonEmptyArray(constraints)) {
       return { success: true, data: pre };
     }
@@ -82,50 +153,7 @@ export const generateRecordUpdater = <
     }
 
     return { success: false, errors, invalidData: pre };
-  };
-
-  const updater = (queue: Id<T>[]): RecordUpdater<T, Error, RemoveKey> => {
-    const createSetter =
-      (b: boolean) =>
-      <Path extends FieldPath<T>>(
-        path: never extends RemoveKey ? Path : Exclude<Path, RemoveKey>,
-        valueOrFunc: ValueOrFunc<T, Path, Error>
-      ) => {
-        return updater([
-          ...queue,
-          origin => {
-            const go = getGo(origin, valueOrFunc, b, validate);
-
-            return go(origin, path.split('.'));
-          },
-        ]);
-      };
-
-    const run: (item: T) => Result<T, Error> = origin => {
-      const result = isNonEmptyArray(queue) ? composeId(...queue)(origin) : origin;
-      const validated = validate(result);
-      if (!validated.success) {
-        return validated;
-      }
-      return { success: true, data: result };
-    };
-
-    return {
-      run,
-      runOrThrowError: (origin, throwError) => {
-        const r = run(origin);
-        if (!r.success) {
-          throwError(r.errors);
-          throw new Error('throw custom error in errorBuilder');
-        }
-        return r.data;
-      },
-      set: createSetter(false),
-      setIfNotNullish: createSetter(true),
-    };
-  };
-
-  return updater([]);
+  }
 };
 
 export default { generateRecordUpdater };

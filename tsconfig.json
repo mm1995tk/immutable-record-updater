@@ -7,7 +7,6 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -19,11 +18,7 @@
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./dist"
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "declarationDir": "dist"
   },
   "include": ["src/**/*.ts"]
 }
