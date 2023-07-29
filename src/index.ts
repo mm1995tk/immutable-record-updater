@@ -73,7 +73,7 @@ export type RecordUpdater<
   ): RecordUpdater<T, Error, RemoveKey>;
 };
 
-export type { Constraint, FieldPath, FieldPathValue, ValueOrFunc };
+export type { Constraint, FieldPath, FieldPathValue, FieldValues, Func, ValueOrFunc };
 
 export const generateRecordUpdater = <
   T extends FieldValues,
