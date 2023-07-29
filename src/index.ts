@@ -73,7 +73,7 @@ export type RecordUpdater<
   ): RecordUpdater<T, Error, RemoveKey>;
 };
 
-export type { FieldPath, FieldPathValue };
+export type { Constraint, FieldPath, FieldPathValue, ValueOrFunc };
 
 export const generateRecordUpdater = <
   T extends FieldValues,
@@ -156,7 +156,11 @@ export const generateRecordUpdater = <
   }
 };
 
-export default { generateRecordUpdater };
+export const isFunc = <T extends FieldValues, Path extends FieldPath<T>, Error>(
+  valueOrFunc: ValueOrFunc<T, Path, Error>
+): valueOrFunc is Func<T, Path, Error> => typeof valueOrFunc === 'function';
+
+export default { generateRecordUpdater, isFunc };
 
 // ########################################################################################################################
 
@@ -204,10 +208,6 @@ const getGo = <T extends FieldValues, Path extends FieldPath<T>, Error>(
 
   return go;
 };
-
-const isFunc = <T extends FieldValues, Path extends FieldPath<T>, Error>(
-  valueOrFunc: ValueOrFunc<T, Path, Error>
-): valueOrFunc is Func<T, Path, Error> => typeof valueOrFunc === 'function';
 
 type FieldValues = Record<string, unknown>;
 
