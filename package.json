@@ -32,13 +32,13 @@
     "react-hook-form": "^7.45.2"
   },
   "devDependencies": {
-    "@types/node": "^20.4.2",
-    "@types/react": "^18.2.15",
-    "esbuild": "^0.18.14",
-    "prettier": "^3.0.0",
+    "@types/node": "^20.4.6",
+    "@types/react": "^18.2.18",
+    "esbuild": "^0.18.17",
+    "prettier": "^3.0.1",
     "react": "^18.2.0",
     "tsx": "^3.12.7",
     "typescript": "^5.1.6",
-    "vitest": "^0.33.0"
+    "vitest": "^0.34.1"
   }
 }
